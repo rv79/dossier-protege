@@ -1,0 +1,1 @@
+{"name": "Dossier protégé", "short_name": "Privé", "start_url": "./", "scope": "./", "display": "standalone", "background_color": "#f4f2eb", "theme_color": "#112d3b", "icons": [{"src": "icon.svg", "sizes": "any", "type": "image/svg+xml"}]}

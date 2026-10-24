@@ -1,0 +1,8 @@
+/* Conteneur authentifié : chiffrement des fichiers et des sauvegardes. */
+(function(root){'use strict';const enc=new TextEncoder(),dec=new TextDecoder();
+const bytes=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0)),b64=b=>{let s='';for(let i=0;i<b.length;i+=32768)s+=String.fromCharCode(...b.subarray(i,i+32768));return btoa(s)};
+async function key(passphrase,salt,iterations){const material=await crypto.subtle.importKey('raw',enc.encode(passphrase),'PBKDF2',false,['deriveKey']);return crypto.subtle.deriveKey({name:'PBKDF2',salt:bytes(salt),iterations,hash:'SHA-256'},material,{name:'AES-GCM',length:256},false,['encrypt','decrypt']);}
+async function open(k,iv,cipher,aad){const clear=new Uint8Array(await crypto.subtle.decrypt({name:'AES-GCM',iv:bytes(iv),additionalData:enc.encode(aad),tagLength:128},k,cipher));const view=new DataView(clear.buffer,clear.byteOffset,8),length=Number(view.getBigUint64(0,false));if(!Number.isSafeInteger(length)||length>clear.length-8)throw Error('Conteneur invalide');return clear.slice(8,8+length);}
+async function seal(k,text,aad){const raw=enc.encode(text),length=Math.ceil((raw.length+8)/65536)*65536,clear=new Uint8Array(length);new DataView(clear.buffer).setBigUint64(0,BigInt(raw.length),false);clear.set(raw,8);const iv=crypto.getRandomValues(new Uint8Array(12)),cipher=await crypto.subtle.encrypt({name:'AES-GCM',iv,additionalData:enc.encode(aad)},k,clear);return {iv:b64(iv),cipher:b64(new Uint8Array(cipher))};}
+const api={key,open,seal,bytes,b64,text:b=>dec.decode(b)};root.PrivateCrypto=api;if(typeof module!=='undefined')module.exports=api;
+})(globalThis);
